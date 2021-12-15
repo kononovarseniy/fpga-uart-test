@@ -5,9 +5,9 @@ use ieee.numeric_std.all;
 
 entity UartTransmitter is
 	generic (
-		data_bits: natural := 8;
-		baud_rate: natural := 9600;
-		oversampling: positive := 2
+		data_bits: natural;
+		base_freq: natural;
+		baud_rate: natural
 	);
 	port (
 		clk_i: in std_logic;
@@ -20,38 +20,38 @@ end entity;
 
 architecture rtl of UartTransmitter is
 
--- Edge detector
-signal send_rising_s: std_logic;
-component EdgeDetector is
-	port (
-		clk_i, d_i: in std_logic;
-		
-		q_o: out std_logic
-	);
-end component;
+	component EdgeDetector is
+		port (
+			clk_i, d_i: in std_logic;
+			
+			q_o: out std_logic
+		);
+	end component;
 
--- Sampler
-signal sample_clk_s: std_logic;
-component Prescaler is
-	generic (
-		div: positive
-	);
-	port (
-		clk_i: in std_logic;
-		reset_i: in std_logic;
-		
-		q_o: out std_logic
-	);
-end component;
+	component Prescaler is
+		generic (
+			div: positive
+		);
+		port (
+			clk_i: in std_logic;
+			reset_i: in std_logic;
+			
+			q_o: out std_logic
+		);
+	end component;
 
-constant PRESCALER_DIV: natural := 32;--100000000 / 9600;
+	constant PRESCALER_DIV: natural := base_freq / baud_rate;
 
--- FSM
-type State is (Idle, Start, Data, Stop);
-signal state_s: State;
+	signal send_rising_s: std_logic;
+	signal sample_clk_s: std_logic;
+	signal reset_prescaler_s: std_logic;
 
-signal bit_counter_s: natural;
-signal parity_s: std_logic;
+	-- FSM
+	type State is (Idle, Start, Data, Stop);
+	signal state_s: State;
+
+	signal bit_counter_s: natural;
+	signal parity_s: std_logic;
 
 begin
 
@@ -59,7 +59,6 @@ begin
 		port map (
 			clk_i => clk_i,
 			d_i => send_i,
-
 			q_o => send_rising_s
 		);
 
@@ -69,42 +68,49 @@ begin
 		)
 		port map (
 			clk_i => clk_i,
-			reset_i => send_rising_s,
-
+			reset_i => reset_prescaler_s,
 			q_o => sample_clk_s
 		);
 
 	process(clk_i)
 	begin
 		if rising_edge(clk_i) then
-			if sample_clk_s = '1' or (state_s = Idle and send_rising_s = '1') then
-				case state_s is
-					when Idle =>
-						if send_rising_s = '1' then
-							state_s <= Start;
-							bit_counter_s <= 0;
-							parity_s <= '0';
-							tx_o <= '0';
-						end if;
-					when Start =>
+			reset_prescaler_s <= '0';
+			-- Main FSM
+			case state_s is
+				when Idle =>
+					if send_rising_s = '1' then
+						state_s <= Start;
+						bit_counter_s <= 0;
+						parity_s <= '0';
+						reset_prescaler_s <= '1';
+						tx_o <= '0';
+					end if;
+				when Start =>
+					if sample_clk_s = '1' then
 						tx_o <= '1';
 						state_s <= Data;
-					when Data =>
-						if bit_counter_s < data_bits then
-							parity_s <= parity_s xor data_i(bit_counter_s);
+					end if;
+				when Data =>
+					if bit_counter_s < data_bits then
+						if sample_clk_s = '1' then
 							tx_o <= data_i(bit_counter_s);
+							parity_s <= parity_s xor data_i(bit_counter_s);
+							bit_counter_s <= bit_counter_s + 1;
 						end if;
-						if bit_counter_s = data_bits then
+					elsif bit_counter_s = data_bits then
+						if sample_clk_s = '1' then
 							tx_o <= parity_s;
 							state_s <= Stop;
 						end if;
-						bit_counter_s <= bit_counter_s + 1;
-					when Stop =>
+					end if;
+				when Stop =>
+					if sample_clk_s = '1' then
 						tx_o <= '0';
 						state_s <= Idle;
-				end case;
-			end if;
+					end if;
+			end case;
+			-- End Main FSM
 		end if;
 	end process;
-
 end architecture;

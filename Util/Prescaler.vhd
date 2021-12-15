@@ -21,7 +21,7 @@ begin
 	begin
 		if rising_edge(clk_i) then
 			if reset_i = '1' then
-				cnt := 0;
+				cnt := div - 1;
 				q_o <= '0';
 			else
 				cnt := cnt + 1;
