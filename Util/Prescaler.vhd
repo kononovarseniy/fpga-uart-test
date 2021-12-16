@@ -4,7 +4,8 @@ use ieee.numeric_std.all;
 
 entity Prescaler is
 	generic (
-		div: positive
+		div: positive;
+		initial_value: positive
 	);
 	port (
 		clk_i: in std_logic;
@@ -21,7 +22,7 @@ begin
 	begin
 		if rising_edge(clk_i) then
 			if reset_i = '1' then
-				cnt := div - 1;
+				cnt := initial_value;
 				q_o <= '0';
 			else
 				cnt := cnt + 1;

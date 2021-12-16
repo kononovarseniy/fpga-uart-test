@@ -57,45 +57,26 @@ end component;
 
 component UartReceiver is
 	generic (
-		data_bits: natural := 8;
-		baud_rate: natural := 9600;
-		oversampling: positive := 2
+		data_bits: natural;
+		base_freq: natural;
+		baud_rate: natural
 	);
 	port (
 		clk_i: in std_logic;
 		rx_i: in std_logic;
-		dbg_o: out std_logic;
-		sample_clk_o: out std_logic;
 		
 		irq_o: out std_logic;
-		data_o: out std_logic_vector(data_bits - 1 downto 0)
-	);
-end component;
-
-component SynchronousPrescaler is
-	generic (
-		div: positive
-	);
-	port (
-		clk_i: in std_logic;
-		d_i: in std_logic;
-		reset_i: in std_logic;
+		data_o: out std_logic_vector(data_bits - 1 downto 0);
 		
-		q_o: out std_logic
+		sample_clk_o: out std_logic;
+		idle_o: out std_logic;
+		start_o: out std_logic;
+		bits_o: out std_logic;
+		stop_o: out std_logic
 	);
 end component;
 
 signal rx_tx_s: std_logic;
-
-component SynchronousEdgeDetector is
-	port (
-		clk_i: in std_logic;
-		en_i: in std_logic;
-		d_i: in std_logic;
-
-		q_o: out std_logic
-	);
-end component;
 
 begin
 	main_pll: MainPLL
@@ -117,77 +98,24 @@ begin
 			tx_o => rx_tx_s
 		);
 	rx: UartReceiver
+		generic map (
+			data_bits => 8,
+			base_freq => base_freq,
+			baud_rate => bit_rate
+		)
 		port map (
 			clk_i => clk_s,
 			data_o => data_o,
 			irq_o => recv_o,
 			rx_i => rx_tx_s,
-			dbg_o => dbg_rx_o,
-			sample_clk_o => sample_clk_o
+
+			sample_clk_o => sample_clk_o,
+			idle_o => dbg_s1,
+			start_o => dbg_s2,
+			bits_o => dbg_s3,
+			stop_o => dbg_s4
 		);
-	
-	p1: SynchronousPrescaler
-		generic map (
-			div => 1
-		)
-		port map (
-			clk_i => clk_s,
-			d_i => dbg_i2,
-			reset_i => dbg_i,
-			q_o => dbg_s1
-		);
-	
-	p2: SynchronousPrescaler
-		generic map (
-			div => 2
-		)
-		port map (
-			clk_i => clk_s,
-			d_i => dbg_i2,
-			reset_i => dbg_i,
-			q_o => dbg_s2
-		);
-	
-	p3: SynchronousPrescaler
-		generic map (
-			div => 3
-		)
-		port map (
-			clk_i => clk_s,
-			d_i => dbg_i2,
-			reset_i => dbg_i,
-			q_o => dbg_s3
-		);
-	
-	p4: SynchronousPrescaler
-		generic map (
-			div => 4
-		)
-		port map (
-			clk_i => clk_s,
-			d_i => dbg_i2,
-			reset_i => dbg_i,
-			q_o => dbg_s4
-		);
-	
---	p5: SynchronousPrescaler
---		generic map (
---			div => 5
---		)
---		port map (
---			clk_i => clk_s,
---			d_i => dbg_i2,
---			reset_i => dbg_i,
---			q_o => dbg_s5
---		);
-	sed: SynchronousEdgeDetector
-		port map (
-			clk_i => clk_s,
-			en_i => clk_s,
-			d_i => dbg_i2,
-			q_o => dbg_s5
-		);
-		
+
 	dbg_o <= rx_tx_s;
 	dbg_clk_o <= clk_s;
 

@@ -30,7 +30,8 @@ architecture rtl of UartTransmitter is
 
 	component Prescaler is
 		generic (
-			div: positive
+			div: positive;
+			initial_value: positive
 		);
 		port (
 			clk_i: in std_logic;
@@ -64,7 +65,8 @@ begin
 
 	sampler: Prescaler
 		generic map (
-			div => PRESCALER_DIV
+			div => PRESCALER_DIV,
+			initial_value => PRESCALER_DIV - 1
 		)
 		port map (
 			clk_i => clk_i,
