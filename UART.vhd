@@ -11,25 +11,20 @@ entity UART is
 		send_i: in std_logic;
 		recv_o: out std_logic;
 		
-		dbg_i: in std_logic;
-		dbg_i2: in std_logic;
-		dbg_s1: out std_logic;
-		dbg_s2: out std_logic;
-		dbg_s3: out std_logic;
-		dbg_s4: out std_logic;
-		dbg_s5: out std_logic;
-		
-		dbg_clk_o: out std_logic;
-		sample_clk_o: out std_logic;
-		dbg_rx_o: out std_logic;
-		dbg_o: out std_logic
+		clk_pll_dbg: out std_logic;
+		bus_dbg: out std_logic;
+		rx_idle_dbg: out std_logic;
+		rx_start_dbg: out std_logic;
+		rx_bits_dbg: out std_logic;
+		rx_stop_dbg: out std_logic;
+		rx_en_dbg: out std_logic
 	);
 end entity;
 
 architecture rtl of UART is
 
 constant base_freq: positive := 100_000_000; -- 100 MHz.
-constant bit_rate: positive := 5_000_000; -- 5 MHz, 20 ticks per bit.
+constant bit_rate: positive := 2_000_000; -- 2 MHz, 50 ticks per bit.
 
 -- MainPLL
 signal clk_s: std_logic;
@@ -109,14 +104,14 @@ begin
 			irq_o => recv_o,
 			rx_i => rx_tx_s,
 
-			sample_clk_o => sample_clk_o,
-			idle_o => dbg_s1,
-			start_o => dbg_s2,
-			bits_o => dbg_s3,
-			stop_o => dbg_s4
+			sample_clk_o => rx_en_dbg,
+			idle_o => rx_idle_dbg,
+			start_o => rx_start_dbg,
+			bits_o => rx_bits_dbg,
+			stop_o => rx_stop_dbg
 		);
 
-	dbg_o <= rx_tx_s;
-	dbg_clk_o <= clk_s;
+	bus_dbg <= rx_tx_s;
+	clk_pll_dbg <= clk_s;
 
 end architecture;
