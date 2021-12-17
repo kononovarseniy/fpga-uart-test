@@ -10,6 +10,7 @@ entity UART is
 		data_o: out std_logic_vector(7 downto 0);
 		send_i: in std_logic;
 		recv_o: out std_logic;
+		parity_ok_o: out std_logic;
 		
 		clk_pll_dbg: out std_logic;
 		bus_dbg: out std_logic;
@@ -61,6 +62,7 @@ component UartReceiver is
 		rx_i: in std_logic;
 		
 		irq_o: out std_logic;
+		parity_ok_o: out std_logic;
 		data_o: out std_logic_vector(data_bits - 1 downto 0);
 		
 		sample_clk_o: out std_logic;
@@ -103,6 +105,7 @@ begin
 			data_o => data_o,
 			irq_o => recv_o,
 			rx_i => rx_tx_s,
+			parity_ok_o => parity_ok_o,
 
 			sample_clk_o => rx_en_dbg,
 			idle_o => rx_idle_dbg,

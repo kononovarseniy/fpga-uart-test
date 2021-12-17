@@ -14,6 +14,7 @@ entity UartReceiver is
 		rx_i: in std_logic;
 		
 		irq_o: out std_logic;
+		parity_ok_o: out std_logic;
 		data_o: out std_logic_vector(data_bits - 1 downto 0);
 		
 		sample_clk_o: out std_logic;
@@ -127,10 +128,9 @@ begin
 					end if;
 				when Stop =>
 					if sample_clk_s = '1' then
-						if parity_s = '0' then
-							data_o <= data_s;
-							irq_o <= '1';
-						end if;
+						parity_ok_o <= not parity_s;
+						data_o <= data_s;
+						irq_o <= '1';
 						state_s <= Idle;
 					end if;
 			end case;
